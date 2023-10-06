@@ -1,0 +1,198 @@
+RESPONSEMAPPER - SERVICE CLASS
+
+Method 1: mapEventToEventResponse
+
+package com.project.bos.dg.datastore.service.impl;
+
+import com.project.bos.dg.datastore.constants.DocumentGeneratorEventStoreConstants;
+import com.project.bos.dg.datastore.mapper.EventMapper;
+import com.project.bos.dg.datastore.model.entity.DmEvent;
+import com.project.bos.dg.datastore.model.entity.DmEventDocument;
+import com.project.bos.dg.datastore.model.entity.Document;
+import com.project.bos.dg.datastore.model.request.CreateDocumentServiceRequestStatus;
+import com.project.bos.dg.datastore.model.request.DocumentRequest;
+import com.project.bos.dg.datastore.model.request.DocumentServiceRequestData;
+import com.project.bos.dg.datastore.model.response.DocumentRetrievalResponse;
+import com.project.bos.dg.datastore.model.response.EventResponse;
+import com.project.bos.dg.datastore.model.response.common.DocumentResponse;
+import com.project.bos.dg.datastore.model.response.documents.DocumentIdsResponse;
+import com.project.bos.dg.datastore.repository.DmEventDocumentRepository;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+public class ResponseMapperTest {
+
+    @Mock
+    private DmEventDocumentRepository dmEventDocumentRepository;
+
+    @Mock
+    private EventMapper eventMapper;
+
+    @Mock
+    private ResponseMapper responseMapper;
+
+
+    @Before
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    //Method 1: mapEventTOEventResponse
+    //Scenario 1: testMapEventToEventResponse_Success
+    @Test
+    public void testMapEventToEventResponse_Success() {
+        // Create a sample DmEvent and EventResponse
+        DmEvent dmEvent = new DmEvent();
+        dmEvent.setCorrelationId("12345");
+        EventResponse eventResponse = new EventResponse();
+
+        // Mock the behavior of dmEventDocumentRepository
+        DmEventDocument dmEventDocument = new DmEventDocument();
+        Document document = new Document();
+        dmEventDocument.setDocumentToEventDocument(document);
+        when(dmEventDocumentRepository.findByEventId(anyLong())).thenReturn(Optional.of(dmEventDocument));
+
+        // Mock the behavior of eventMapper
+        DocumentRequest documentRequest = new DocumentRequest();
+        when(eventMapper.documentToDocumentRequest(eq(document), any(DocumentRequest.class))).thenReturn(documentRequest);
+
+        // Call the method to be tested
+        responseMapper.mapEventTOEventResponse(dmEvent, eventResponse);
+
+        // Verify that the method behaved correctly
+        assertEquals("12345", eventResponse.getEventDataResponse().getDocumentRequest().getCorrelationId());
+    }
+
+    //Scenario 2: testMapEventToEventResponse_DocumentNotFound
+    @Test
+    public void testMapEventToEventResponse_DocumentNotFound() {
+        // Create a sample DmEvent and EventResponse
+        DmEvent dmEvent = new DmEvent();
+        dmEvent.setCorrelationId("12345");
+        EventResponse eventResponse = new EventResponse();
+
+        // Mock the behavior of dmEventDocumentRepository to return an empty Optional
+        when(dmEventDocumentRepository.findByEventId(anyLong())).thenReturn(Optional.empty());
+
+        // Call the method to be tested
+        responseMapper.mapEventTOEventResponse(dmEvent, eventResponse);
+
+        // Verify that the method behaves correctly when Document is not found
+        assertNull(eventResponse.getEventDataResponse().getDocumentRequest()); // DocumentRequest should be null
+    }
+
+    //Scenario 3: testMapEventToEventResponse_EmptyDmEvent
+    @Test
+    public void testMapEventToEventResponse_EmptyDmEvent() {
+        // Create a sample DmEvent with missing values
+        DmEvent dmEvent = new DmEvent();
+        EventResponse eventResponse = new EventResponse();
+
+        // Mock the behavior of dmEventDocumentRepository to return an empty Optional
+        when(dmEventDocumentRepository.findByEventId(anyLong())).thenReturn(Optional.empty());
+
+        // Call the method to be tested with an empty DmEvent
+        responseMapper.mapEventTOEventResponse(dmEvent, eventResponse);
+
+        // Verify that the method behaves correctly with an empty DmEvent
+        assertNull(eventResponse.getEventDataResponse().getDocumentRequest()); // DocumentRequest should be null
+    }
+
+    //Scenario 4: testMapEventToEventResponse_DocumentRequestTypeA
+    @Test
+    public void testMapEventToEventResponse_DocumentRequestTypeA() {
+        // Create a sample DmEvent
+        DmEvent dmEvent = new DmEvent();
+        EventResponse eventResponse = new EventResponse();
+
+        // Mock the behavior of dmEventDocumentRepository to return an empty Optional
+        when(dmEventDocumentRepository.findByEventId(anyLong())).thenReturn(Optional.empty());
+
+        // Mock the behavior of eventMapper to return a specific type of DocumentRequest
+        DocumentRequest documentRequestTypeA = new DocumentRequest();
+        when(eventMapper.documentToDocumentRequest(any(Document.class), any(DocumentRequest.class))).thenReturn(documentRequestTypeA);
+
+        // Call the method to be tested
+        responseMapper.mapEventTOEventResponse(dmEvent, eventResponse);
+
+        // Verify that the method behaves correctly when DocumentRequestTypeA is returned
+        assertNotNull(eventResponse.getEventDataResponse().getDocumentRequest());
+        assertEquals(documentRequestTypeA, eventResponse.getEventDataResponse().getDocumentRequest().getClass());
+        // Add more assertions as needed for this specific type of DocumentRequest.
+    }
+
+    //Scenario 5: testMapEventToEventResponse_DocumentRequestTypeB
+    @Test
+    public void testMapEventToEventResponse_DocumentRequestTypeB() {
+        // Create a sample DmEvent
+        DmEvent dmEvent = new DmEvent();
+        EventResponse eventResponse = new EventResponse();
+
+        // Mock the behavior of dmEventDocumentRepository to return an empty Optional
+        when(dmEventDocumentRepository.findByEventId(anyLong())).thenReturn(Optional.empty());
+
+        // Mock the behavior of eventMapper to return a different type of DocumentRequest
+        DocumentRequest documentRequestTypeB = new DocumentRequest();
+        when(eventMapper.documentToDocumentRequest(any(Document.class), any(DocumentRequest.class))).thenReturn(documentRequestTypeB);
+
+        // Call the method to be tested
+        responseMapper.mapEventTOEventResponse(dmEvent, eventResponse);
+
+        // Verify that the method behaves correctly when DocumentRequestTypeB is returned
+        assertNotNull(eventResponse.getEventDataResponse().getDocumentRequest());
+        assertEquals(documentRequestTypeB, eventResponse.getEventDataResponse().getDocumentRequest().getClass());
+    }
+
+    //Scenario 6: testMapEventToEventResponse_ExceptionHandling
+    @Test
+    public void testMapEventToEventResponse_ExceptionHandling() {
+        // Create a sample DmEvent and EventResponse
+        DmEvent dmEvent = new DmEvent();
+        EventResponse eventResponse = new EventResponse();
+
+        // Mock the behavior of dmEventDocumentRepository to throw a DataIntegrityViolationException
+        when(dmEventDocumentRepository.findByEventId(anyLong())).thenThrow(DataIntegrityViolationException.class);
+
+        // Call the method to be tested
+        try {
+            responseMapper.mapEventTOEventResponse(dmEvent, eventResponse);
+
+            // If the method does not throw an exception, fail the test
+            fail("Expected DataIntegrityViolationException was not thrown");
+        } catch (DataIntegrityViolationException ce) {
+            // Verify that the method correctly handles the DataIntegrityViolationException
+            // You can add assertions or logging checks here as needed
+            verify(eventMapper, never()).documentToDocumentRequest(any(Document.class), any(DocumentRequest.class)); // Ensure eventMapper is not called in this case
+        }
+    }
+
+    //Scenario 7: testMapEventToEventResponse_NullParameters
+    @Test
+    public void testMapEventToEventResponse_NullParameters() {
+        // Create a sample EventResponse
+        EventResponse eventResponse = new EventResponse();
+
+        // Mock the behavior of dmEventDocumentRepository to return an empty Optional
+        when(dmEventDocumentRepository.findByEventId(anyLong())).thenReturn(Optional.empty());
+
+        // Call the method with null parameters
+        responseMapper.mapEventTOEventResponse(null, eventResponse);
+
+        // Verify that the method behaves gracefully when null parameters are passed,
+        // For example, ensure that it does not throw NullPointerExceptions
+        assertNull(eventResponse.getEventDataResponse().getDocumentRequest());
+    }
